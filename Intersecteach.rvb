@@ -1,0 +1,76 @@
+'Script by: Thomas Anagnostou
+'Tested with RhinoScript 20050211
+
+option explicit
+
+sub intEach()
+
+dim arr_1st
+dim arr_2nd
+dim arr_int
+dim arr_polytemp
+dim str1(20)
+dim count, count2,n
+dim arr_dom
+dim str_tmp
+
+str1(0)="Select first set of objects"
+str1(1)="Select second set of objects"
+str1(2)="Script not successful"
+str1(3)=" (No objects selected)"
+str1(4)=" do not intersect"
+str1(5)="First object "
+str1(6)="Second object "
+str1(7)="Intersection type not recognized"
+
+'User input
+arr_1st=rhino.getobjects (str1(0),4+8+16,vbfalse,vbfalse,vbfalse)
+if not isarray(arr_1st) then
+	rhino.print str1(2)&str1(3)
+	exit sub
+end if
+'rhino.lockobjects arr_1st
+
+arr_2nd=rhino.getobjects (str1(1),4+8+16,vbfalse,vbfalse,vbfalse)
+if not isarray(arr_2nd) then
+	rhino.print str1(2)&str1(3)
+	exit sub
+end if
+'rhino.unlockobjects arr_1st
+
+'arr_int=rhino.BooleanIntersection (arr_1st,arr_2nd,vbfalse)
+for count=0 to ubound(arr_1st)
+	for count2=0 to ubound(arr_2nd)
+		if (rhino.issurface (arr_1st(count)) and rhino.issurface (arr_2nd(count2))) then
+			arr_int=Rhino.IntersectBreps (arr_1st(count),arr_2nd(count2))
+		elseif (rhino.issurface (arr_1st(count)) or rhino.issurface (arr_2nd(count2)) and (rhino.iscurve (arr_1st(count)) or rhino.iscurve (arr_2nd(count2)))) then
+			if rhino.issurface (arr_1st(count)) then 
+				arr_int=Rhino.CurveBrepIntersect (arr_2nd(count2),arr_1st(count))
+				str_tmp=arr_2nd(count2)
+			elseif rhino.issurface (arr_2nd(count2)) then 
+				arr_int=Rhino.CurveBrepIntersect (arr_1st(count),arr_2nd(count2))
+				str_tmp=arr_1st(count)
+			end if
+		elseif (rhino.iscurve (arr_1st(count)) and rhino.iscurve (arr_2nd(count2))) then
+			arr_int=rhino.curvecurveIntersection (arr_1st(count),arr_2nd(count2))
+			if isarray (arr_int) then
+			rhino.print "db in"
+				for n=0 to ubound(arr_int)
+					arr_dom=array(arr_int(n,7),arr_int(n,8))
+					if arr_int(n,0)=1 then rhino.addpoint arr_int(n,1)
+					if arr_int(n,0)=2 then rhino.trimcurve (rhino.copyobject (arr_2nd(count2))),arr_dom
+				next
+			end if
+		elseif (rhino.ispolysurface (arr_1st(count)) or rhino.ispolysurface (arr_2nd(count2))) then
+			rhino.print "boo ! (polysurface)"
+			exit sub
+		else
+			rhino.print str1(7)
+		end if
+		if not isarray(arr_int) then rhino.print str1(5)&(count+1)&" and "&lcase(str1(6))&(count2+1)&str1(4)
+	next
+next
+
+end sub
+
+intEach

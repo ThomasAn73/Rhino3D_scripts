@@ -1,0 +1,52 @@
+'Thomas Anagnostou May/2/2007
+'RhinoV4
+option explicit
+
+sub cameraline()
+
+const version=20060906
+
+const x=0
+const y=1
+const z=2
+
+const camera=0
+const target=1
+
+dim ptCT
+dim cLine(2)
+dim length
+dim thisview
+dim userSays
+
+'Version check
+If (clng(Rhino.Version) < clng(version)) then
+	Rhino.print "Script aborted. (Please update RhinoScript to Version <"&version&"> or higher)"
+	exit sub
+end if
+thisview=rhino.currentview
+userSays=rhino.getstring("CameraLine","Extract",array("Extract","Assign"))
+usersays=lcase(usersays)
+select case usersays
+	case "extract"
+		ptCT=rhino.ViewCameraTarget
+		if (isarray(ptCT)) then
+			length=sqr((ptCT(target)(x)-ptCT(camera)(x))^2+(ptCT(target)(y)-ptCT(camera)(y))^2+(ptCT(target)(z)-ptCT(camera)(z))^2)
+			cline(0)=rhino.addline (ptcT(camera),ptCT(target))
+			cline(1)=rhino.addtextdot ("Camera",ptCT(Camera))
+			cline(2)=rhino.addgroup
+			rhino.addobjectstogroup array(cline(0),cline(1)),cline(2)
+		else
+		    rhino.print "Script was not successful. (Camera and Target information was not found)"
+		end if
+	case "assign"
+		cline(0)=rhino.getobject("Select line object",4,true)
+		if (vartype(cline(0))<>8) then exit sub
+		if (not(rhino.ispolycurve(cline(0))) and rhino.iscurvelinear(cline(0))) then
+			ptCT=Array(rhino.curvestartpoint(cline(0)),rhino.curveendpoint(cline(0)))
+			rhino.viewcameratarget thisview,ptCT(camera),ptCT(target)
+		end if
+end select
+
+end sub
+cameraline

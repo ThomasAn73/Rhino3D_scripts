@@ -1,0 +1,151 @@
+'Script by: Thomas Anagnostou
+'For Rhino V3 (Tested with rhinoscript 20050201)
+
+'Window select by type
+option explicit
+dim arr_pre
+dim arr_cur
+
+WselectByType
+sub WselectByType()
+
+const selType	=0
+
+dim LoopOdo1
+dim LoopOdo2
+dim userSays(0)
+dim tell(20)
+dim arr_type(1)
+dim flag
+dim str_tmp
+dim arr_tmp
+
+flag=-1
+arr_type(0)=array("Points","PointClouds","Curves","Surfaces","Polysurfaces","Meshes","Lights","Annotations","Blocks","Color","Layer")
+arr_type(1)=array(1,2,4,8,16,32,256,512,4096,0,0)
+tell(0)="Object type to select:"
+tell(1)="Curves" 'default type
+tell(2)="Script not successful"
+tell(3)=" (User input of unknown object type)"
+tell(4)="Drag window to select from "
+tell(5)="Select one object to sample for "
+tell(6)="isolated"
+tell(7)=" object(s) added to selection"
+tell(8)="No objects selected"
+
+'lock/preserve pre-existing selection
+arr_pre=rhino.selectedobjects (true)
+if isarray(arr_pre)then
+	rhino.lockobjects arr_pre
+end if
+
+'user input
+userSays(selType)=rhino.getstring (tell(0),tell(1),arr_type(0))
+if (not isnull(userSays(selType))) then
+	for LoopOdo1=0 to ubound(arr_Type(0)) 'test for valid user input
+		if (lcase(arr_type(0)(LoopOdo1))=lcase(userSays(selType))) then
+			flag=1
+			exit for
+		end if
+	next
+	if (flag<=0) then 'exit if input is invalid
+		rhino.print tell(2)&tell(3)
+		resetPre ()
+		exit sub
+	end if
+
+	'LoopOdo1 now contains the array index of the desired type (in arr_type)
+	if userSays(selType)=arr_type(0)(9) then 'select by color
+		str_tmp=rhino.getobject (tell(5)&lcase(arr_type(0)(LoopOdo1)))
+		if not isnull(str_tmp) then
+			arr_tmp=Rhino.ObjectsByColor (Rhino.ObjectColor (str_tmp),,vbtrue)
+			rhino.print arr_type(0)(LoopOdo1)&" <" & Rhino.ObjectColor (str_tmp) & "> "&tell(6)
+			arr_cur=rhino.getobjects (tell(4)&arr_type(0)(LoopOdo1),arr_type(1)(LoopOdo1),vbfalse,vbfalse,vbtrue,arr_tmp)
+		end if
+	elseif userSays(selType)=arr_type(0)(10) then 'select by layer
+		str_tmp=rhino.getobject (tell(5)&lcase(arr_type(0)(LoopOdo1)))
+		if not isnull(str_tmp) then
+			arr_tmp=Rhino.ObjectsByLayer (Rhino.ObjectLayer (str_tmp))
+			rhino.print arr_type(0)(LoopOdo1)&" <" & Rhino.Objectlayer (str_tmp) & "> "&tell(6)
+			arr_cur=rhino.getobjects (tell(4)&arr_type(0)(LoopOdo1),arr_type(1)(LoopOdo1),vbfalse,vbfalse,vbtrue,arr_tmp)
+		end if
+	else 'select by type
+		arr_cur=rhino.getobjects (tell(4)&lcase(arr_type(0)(LoopOdo1)),arr_type(1)(LoopOdo1),vbfalse,vbfalse,vbtrue)
+	end if
+end if
+
+'unlock
+call resetPre ()
+
+call Xgroup ()
+if isarray(arr_cur) then rhino.print (ubound(arr_cur)+1)&tell(7) else rhino.print tell(8)
+end sub
+
+sub resetpre()
+if isarray(arr_pre) then
+	rhino.unlockobjects arr_pre
+	rhino.selectobjects arr_pre
+end if
+end sub
+
+'if the selected objects belong to groups that contain currently unselected objects, then split those groups (to avoid corrupting group behavior)
+sub Xgroup ()
+
+const outer	=0
+const inner	=1
+
+dim LoopOdo1	'Loop odometer
+dim LoopOdo2	'Loop odometer
+dim GroupNamesInBasket()
+dim CurTopGroupName
+dim flag
+dim SameGrp_ObjectIDs
+dim tell(2)
+
+tell(0)="Group <"
+tell(1)="> is partially selected. Current selection has now been removed from this group"
+
+flag=-1
+redim GroupNamesInBasket (1,0) ' the last dimension varies (the 0th element exists but it is empty)
+if isarray(arr_cur) then
+
+	'parse the current selection objects and extract unique topGroupNames
+	for LoopOdo1=0 to ubound(arr_cur)
+	CurTopGroupName=rhino.objecttopgroup (arr_cur(LoopOdo1))
+	if (not isnull(CurTopGroupName)) then
+		for LoopOdo2=0 to ubound (GroupNamesInBasket,2) 'parse the second dimension (group names already found in the current selection)
+			if (GroupNamesInBasket(0,LoopOdo2)=CurTopGroupName) then
+				GroupNamesInBasket(1,LoopOdo2)=GroupNamesInBasket(1,LoopOdo2)+1 'increase the count for this group name
+				flag=1
+				exit for
+			end if
+		next
+		if (flag<>1) then
+			redim preserve GroupNamesInBasket(1,ubound(GroupNamesInBasket,2)+1) 'redim the second dimension by 1
+			GroupNamesInBasket(0,ubound(GroupNamesInBasket,2))=CurTopGroupName 'add group name to the basket
+			'rhino.print CurTopGroupName 'debug only
+		else
+			flag=-1
+		end if
+	end if
+	next
+
+	'parse the group-names identified from the selection (only the partial groups are being exploded, the other groups within the selection are left intact)
+	for LoopOdo1=0 to ubound (GroupNamesInBasket,2)
+		if (GroupNamesInBasket(0,LoopOdo1)<>"") then 'the 0th element of GroupNamesInBasket is initialized but not used (so it defaults to "" )
+			SameGrp_ObjectIDs=rhino.objectsbygroup(GroupNamesInBasket(0,LoopOdo1))
+			if isarray(SameGrp_ObjectIDs) then
+			
+				'if the object belongs to a group with some objects that are not currently selected
+				if(ubound(SameGrp_ObjectIDs)>GroupNamesInBasket(1,LoopOdo1)) then
+					for LoopOdo2=0 to ubound(arr_cur)
+						if (GroupNamesInBasket(0,LoopOdo1)=rhino.objecttopgroup(arr_cur(LoopOdo2))) then rhino.removeobjectfromallgroups arr_cur(LoopOdo2)
+					next
+					rhino.print tell(0)&GroupNamesInBasket(0,LoopOdo1)&tell(1)
+				end if
+			end if
+		end if
+	next
+end if
+
+end sub

@@ -1,0 +1,33 @@
+
+blockinfo
+sub BlockInfo ()
+
+Dim strObject
+
+strObject = Rhino.GetObject(DoTell(0)(0))
+
+If isnull(strObject) Then
+	Rhino.print dotell(40)(0)
+	exit sub
+end if
+
+if rhino.isblockinstance (strobject) then
+	Rhino.Print doTell(01)(0)&"<"&Rhino.BlockInstanceName(strObject)&">"
+	Rhino.AddPoint Rhino.BlockInstanceInsertPoint(strObject)
+else
+	Rhino.print dotell(40)(0)&DoTell(41)(0)
+End If
+
+End sub
+
+function DoTell (What)
+dim tellThem(60)
+
+TellThem(00)=Array("Select a block object")
+TellThem(01)=Array("Block Name ")
+
+TellThem(40)=Array("Script Aborted.")
+tellThem(41)=Array(" (No valid block instance found)")
+
+DoTell=TellThem(what)
+end function

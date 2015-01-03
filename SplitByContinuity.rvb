@@ -1,0 +1,142 @@
+'By: Thomas Anagnostou OCT-13-2005
+'For: RhinoV3 and V4
+
+option explicit
+splitByContinuity
+sub SplitByContinuity()
+Dim UserSays(1)
+Dim Points(3)
+Dim LoopOutest
+Dim LoopOuter
+Dim LoopInner
+Dim HowMany(2)
+Dim CurveParam(1)
+Dim CurveRadius
+Dim KinkAngle
+Dim Temp
+Dim splitCount
+Dim epsilon
+
+Const AngleTol		=15
+
+Const Curves		=0
+
+Const Edit		=1
+Const Splitting	=2
+Const Kinky		=3
+
+Epsilon=Rhino.UnitAbsoluteTolerance
+
+userSays(curves) = Rhino.GetObjects ("Select a curve", 4, vbfalse,vbtrue)
+
+If (vartype(userSays(curves))>8000) Then
+	howmany(2)=ubound(usersays(curves))
+	for loopOutest=0 to howmany(2)
+		SplitCount=0
+		Rhino.print "Splitting object: "&(loopoutest+1)&" of "&(howmany(2)+1)
+		if (rhino.iscurve(usersays(curves)(loopOutest))) then
+			Points(edit) = Rhino.CurveEditPoints(userSays(curves)(loopOutest))
+			Points(kinky) =Rhino.CurveDiscontinuity(userSays(curves)(loopOutest), 4)
+			If (vartype(Points(edit))>8000 and vartype(points(kinky))>8000) Then
+				howmany(0)=ubound(Points(edit))
+				howmany(1)=ubound(Points(kinky))
+
+				redim temp(howmany(0))
+				points(Splitting)=temp
+				for loopOuter=0 to howmany(0)
+					curveParam(0)=Rhino.CurveClosestPoint(userSays(curves)(loopOutest), points(edit)(loopOuter))
+					for loopInner=0 to howmany(1)
+						curveParam(1)=Rhino.CurveClosestPoint(userSays(curves)(loopOutest), points(kinky)(loopinner))
+						'Rhino.print CurveRadius
+						if (abs(curveParam(0)-curveParam(1))<epsilon and loopOuter>0 and loopOuter<(howmany(0))) then
+							kinkAngle=DotProduct(points(edit)(loopOuter-1),points(edit)(loopOuter+1),points(edit)(loopOuter),vbfalse)
+							'rhino.print "Kink= "&kinkangle 'Debug only
+							if abs(kinkangle)<(180-angleTol) then
+								'rhino.print "Splitting because of angle= "&kinkangle 'Debug only
+								'rhino.addpoint points(edit)(loopOuter-1) 'Debug only
+								'rhino.addpoint points(edit)(loopOuter) 'Debug only
+								'rhino.addpoint points(edit)(loopOuter+1) 'Debug only
+								points(Splitting)(Splitcount)= points(edit)(loopOuter)
+								Splitcount=SplitCount+1
+							end if
+						end if
+					next
+				next
+
+				'Cutting
+				If splitcount>0 Then
+					for loopOuter=0 to splitcount-1
+						curveParam(0)=Rhino.CurveClosestPoint (userSays(curves)(loopOutest), points(Splitting)(loopOuter))
+						temp=Rhino.SplitCurve (userSays(curves)(loopOutest) , curveParam(0))
+						if vartype(temp)>8000 then userSays(curves)(loopOutest)=temp(1)
+					next
+
+				End If
+			End if
+		else
+			Rhino.print "Object "&(loopoutest+1)&" skipped. - (Not a curve object)"
+		end if
+	next
+else
+	Rhino.print "Script not successful. (No curve object selected)"
+End If
+Rhino.UnselectAllObjects
+end sub
+
+
+
+'Dot product
+'requires:
+'	-invcos
+'Receives:
+'	-a 3d point (the tip of the first vector)
+'	-a 3d point (the tip of the second vector)
+'	-a 3d point (the origin of the two vectors)
+'	-a boolean to turn radians on-off
+'Returns:
+'	-the angle between the two vectors
+function DotProduct(a,b,origin,inRad)
+const x	=0
+const y	=1
+const z	=2
+dim TempA(2),TempB(2),magA,MagB,theProduct
+
+if (isarray(a) and isarray(b) and isarray(origin)) then
+	TempA(x)=a(x)-origin(x)
+	TempA(y)=a(y)-origin(y)
+	TempA(z)=a(z)-origin(z)
+	TempB(x)=b(x)-origin(x)
+	TempB(y)=b(y)-origin(y)
+	TempB(z)=b(z)-origin(z)
+	magA=sqr(TempA(x)^2+TempA(y)^2+TempA(z)^2)
+	magB=sqr(TempB(x)^2+TempB(y)^2+TempB(z)^2)
+	theProduct=TempA(x)*TempB(x)+TempA(y)*TempB(y)+TempA(z)*TempB(z)
+	dotproduct=invCos((theProduct/(magA*magB)),inRad)
+else
+	DotProduct=vbnull
+end if
+end function
+
+
+
+'inverse cosine
+'Receives
+'	-the angle (in radians or degrees)
+'	-a boolean to turn radians on-off
+'returns:
+'	-radians if input is radians, returns degrees if input is degrees
+function InvCos (x,inRad)
+dim pi
+dim epsilon
+
+epsilon=0.00001
+pi=atn(1)*4
+'if (abs(x)<>1)
+'if (x=1) then InvCos=0
+'if (x=-1) then InvCos=pi
+
+if (abs(x)>(1 + epsilon) or abs(x)<(1 - epsilon) ) then InvCos=Atn(-X / Sqr(-(X^2) + 1)) + 2 * Atn(1)
+if ((x)<(1 + epsilon) and (x)>(1 - epsilon)) then InvCos=0
+if ((x)<(-1 + epsilon) and (x)>(-1 - epsilon)) then InvCos=pi
+if (inRad=vbFalse) then InvCos=180*InvCos/pi
+end function

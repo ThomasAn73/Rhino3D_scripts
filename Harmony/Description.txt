@@ -1,0 +1,64 @@
+Harmony Distribution Script
+
+Presentation:
+	-Include link to latest RhinoScript when anouncing.
+
+Interface:
+	-Quickest route = Equidistance and  Alignment
+	-Supply toolbar buttons for alignment and distribution (equidistance)
+	-Consider an Html dialoge box
+	-if there is control surface enabled then x,y,z act as multipliers for the respective axis (otherwise they are regular displacement, rotation or scale values)
+
+	-Without control surface -->
+		align "ceiling distribution" (ceiling is an imaginary flat surface)
+		equidistance (similar to illustrator distribute function)
+		jitter rotational, 
+		jitter translational
+		jitter scale
+		Rotation (jitter of zero randomness)
+		Translation (jitter of zero randomness)
+		scale (jitter of zero randomness)
+
+	-With control surface -->
+		align "ceiling" distribution
+		Zdelta displacement
+		controlled distance
+		controlled jitter (rotational)
+		controlled jitter (translational)
+		controlled jitter (scale)
+		controlled rotation
+		controlled translation
+		controlled scale
+
+
+	-Menu System
+		-First prompt: Select target objects
+
+		-Second prompt: (Main menu)
+			Summary: [Equidist=Yes] -- [Align=none] -- [Displacement=0,0,0,no] -- [Rotate=0,0,0,no] -- [Scale=1,1,1,no] -- [Jitter=0,0,0,no]
+			Equidistance, Alignment, Move, Rotate, Scale, Jitter, HandleFrom=Center
+				Equidistance submenu:
+					Equidistant along: Xaxis, Yaxis, Zaxis, none
+					Equidistant between: (sub menu)
+						Handles, BoxEdges
+				Alignment submenu: 
+					Align to: axisX, axisY, Surface, none
+				Move submenu:
+					axisX=0, axisY=0, axisZ=0, Controlled=No
+				-Rotate submenu:
+					Rotate amount (degrees): axisX=0, axisY=0, axisZ=0, Controlled=No
+				-Scale submenu:
+					Scale amount: axisX=1, axisY=1, axisZ=1, Controlled=No
+				-Jitter submenu:
+					Jitter amount: axisX=0, axisY=0, axisZ=0, Controlled=No
+				-Handle submenu:
+					Select object-handle percentage location in bounding box coordinates. Center is at x=0.5, y=0.5, z=0.5
+					Handle point:  BoxAxisX=0.5, BoxAxisY=0.5, BoxAxisZ=0.5
+
+		-Third prompt: Select control surface.
+Known issues:
+	-Groups are not honored. It is best (for now) to turn groups into blocks for use in the script.
+	-Clean up error handling and reporting
+	-Progress indicators not yet implemented
+	-If clusters of objects are lined up perfectly (say on the vertical) then perfoming equidistance on the horizontal the result is not sorted top to bottom and left to right
+ 
